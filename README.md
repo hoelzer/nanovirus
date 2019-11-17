@@ -4,6 +4,8 @@ A nextflow implementation of the assembly-free detection of viruses from long-re
 The implementation is based on Beaulaurier _et al_. 2019, "Assembly-free single-molecule nanopore sequencing
 recovers complete virus genomes from natural microbial communities". [https://www.biorxiv.org/content/biorxiv/early/2019/04/26/619684.full.pdf]
 
+![dag chart](figures/chart.png)
+
 ## Basic execution
 
 ````
