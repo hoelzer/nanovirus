@@ -52,27 +52,6 @@ add csv instead. name,path   or name,pathR1,pathR2 in case of illumina
                 .map { file -> tuple(file.simpleName, file) }
                 .view() }
 
-    // illumina reads input & --list support
-        if (params.illumina && params.list) { illumina_input_ch = Channel
-                .fromPath( params.illumina, checkIfExists: true )
-                .splitCsv()
-                .map { row -> ["${row[0]}", [file("${row[1]}"), file("${row[2]}")]] }
-                .view() }
-        else if (params.illumina) { illumina_input_ch = Channel
-                .fromFilePairs( params.illumina , checkIfExists: true )
-                .view() }
-    
-    // direct fasta input w/o assembly support & --list support
-        if (params.fasta && params.list) { fasta_input_ch = Channel
-                .fromPath( params.fasta, checkIfExists: true )
-                .splitCsv()
-                .map { row -> ["${row[0]}", file("${row[1]}")] }
-                .view() }
-        else if (params.fasta) { fasta_input_ch = Channel
-                .fromPath( params.fasta, checkIfExists: true)
-                .map { file -> tuple(file.simpleName, file) }
-                .view() }
-
 /************************** 
 * MODULES
 **************************/
@@ -84,8 +63,6 @@ include './modules/virsorterGetDB' params(cloudProcess: params.cloudProcess, clo
 include './modules/kaijuGetDB' params(cloudProcess: params.cloudProcess, cloudDatabase: params.cloudDatabase)
 
 //detection
-include './modules/virsorter' params(output: params.output, dir: params.virusdir)
-include './modules/virfinder' params(output: params.output, dir: params.virusdir)
 include './modules/kaiju' params(output: params.output, illumina: params.illumina, nano: params.nano, fasta: params.fasta)
 include './modules/filter_reads' params(output: params.output)
 include './modules/kmerfreq' params(output: params.output)
@@ -96,20 +73,15 @@ include './modules/get_reads_per_bin' params(output: params.output)
 include './modules/filter_kaiju' params(output: params.output)
 
 //qc
-include './modules/fastp'
-include './modules/fastqc'
-include './modules/multiqc' params(output: params.output, dir: params.readQCdir)
 include './modules/nanoplot' params(output: params.output)
 include './modules/filtlong'
 
 //assembly
-include './modules/spades' params(output: params.output, assemblydir: params.assemblydir, memory: params.memory)
 include './modules/flye' params(output: params.output)
 include './modules/canu' params(output: params.output)
 include './modules/medaka' params(output: params.output, model: params.model, assemblydir: params.assemblydir)
 include './modules/minimap2'
 include './modules/racon'
-include './modules/shasta' params(output: params.output, gsize: params.gsize)
 
 //visuals
 include './modules/krona' params(output: params.output)
@@ -123,19 +95,6 @@ include './modules/krona' params(output: params.output)
 The Database Section is designed to "auto-get" pre prepared databases.
 It is written for local use and cloud use.*/
 
-
-workflow download_virsorter_db {
-    main:
-    // local storage via storeDir
-    if (!params.cloudProcess) { virsorterGetDB(); db = virsorterGetDB.out }
-    // cloud storage via db_preload.exists()
-    if (params.cloudProcess) {
-      db_preload = file("${params.cloudDatabase}/virsorter/virsorter-data")
-      if (db_preload.exists()) { db = db_preload }
-      else  { virsorterGetDB(); db = virsorterGetDB.out } 
-    }
-  emit: db    
-}
 
 workflow download_kaiju_db {
     main:
@@ -154,24 +113,6 @@ workflow download_kaiju_db {
 /************************** 
 * SUB WORKFLOWS
 **************************/
-
-/* Comment section:
-*/
-workflow detection {
-    get:    assembly
-            virsorter_db
-
-    main:
-        // virus detection --> VirSorter and VirFinder
-        virsorter(assembly, virsorter_db)
-        //virfinder(fasta_input_ch)
-
-        // ORF detection --> prodigal
-
-        // annotation --> hmmer
-
-}
-
 
 /* Comment section:
 This sub workflow is based on Beaulaurier et al. 2019, Assembly-free single-molecule nanopore sequencing
@@ -233,48 +174,6 @@ workflow detection_nanopore {
 
 }
 
-
-
-/* Comment section:
-*/
-workflow assembly_illumina {
-    get:    reads
-
-    main:
-        // trimming --> fastp
-        fastp(reads)
- 
-        // read QC --> fastqc/multiqc?
-        multiqc(fastqc(fastp.out))
-
-        // assembly with asembler choice --> metaSPAdes
-        spades(fastp.out)
-
-    emit:
-        spades.out
-}
-
-/* Comment section:
-*/
-workflow assembly_nanopore {
-    get:    reads
-
-    main:
-        // trimming and QC of trimmed reads
-        filtlong(reads)
-        // read QC of all reads
-        nanoplot(reads)  
-        // assembly with asembler choice via --assemblerLong
-        if (params.assemblerLong == 'flye') { flye(filtlong.out) ; assemblerOutput = flye.out[0] ; graphOutput = flye.out[1]}
-        if (params.assemblerLong == 'shasta') { shasta(filtlong.out) ; assemblerOutput = shasta.out[0] ; graphOutput = shasta.out[1]}
-        // polishing 
-        medaka(racon(minimap2(assemblerOutput)))
-
-    emit:
-        assemblerOutput
-}
-
-
 /************************** 
 * WORKFLOW ENTRY POINT
 **************************/
@@ -282,31 +181,13 @@ workflow assembly_nanopore {
 /* Comment section: */
 
 workflow {
-    //download_virsorter_db()
-    //virsorter_db = download_virsorter_db.out
     download_kaiju_db()
     kaiju_db = download_kaiju_db.out
 
-    // only detection based on an assembly
-    if (params.fasta) {
-        //detection(fasta_input_ch, virsorter_db)
-    }
-
-    // illumina data
-    if (!params.nano && params.illumina) { 
-        detection(assembly_illumina(illumina_input_ch), virsorter_db)   
-    }
-
     // nanopore data
-    if (params.nano && !params.illumina) { 
+    if (params.nano) { 
         detection_nanopore(nano_input_ch, kaiju_db)           
     }
-
-    // hybrid data
-    if (params.nano && params.illumina) { 
-        
-    }
-
 
 }
 
@@ -332,7 +213,6 @@ def helpMSG() {
 
     ${c_yellow}Input:${c_reset}
     ${c_green} --nano ${c_reset}              '*.fasta' or '*.fastq.gz'   -> one sample per file
-    ${c_green} --illumina ${c_reset}          '*.R{1,2}.fastq.gz'         -> file pairs
     ${c_green} --fasta ${c_reset}             '*.fasta'                   -> one sample per file, no assembly produced
     ${c_dim}  ..change above input to csv:${c_reset} ${c_green}--list ${c_reset}            
 
