@@ -75,7 +75,7 @@ add csv instead. name,path   or name,pathR1,pathR2 in case of illumina
 include './modules/kaijuGetDB' params(cloudProcess: params.cloudProcess, cloudDatabase: params.cloudDatabase)
 
 //detection
-include './modules/kaiju' params(output: params.output, illumina: params.illumina, nano: params.nano, fasta: params.fasta)
+include './modules/kaiju' params(output: params.output, nano: params.nano, fasta: params.fasta)
 include './modules/filter_reads' params(output: params.output)
 include './modules/kmerfreq' params(output: params.output)
 include './modules/umap' params(output: params.output)
