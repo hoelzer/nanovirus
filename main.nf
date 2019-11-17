@@ -130,7 +130,7 @@ workflow download_kaiju_db {
 This sub workflow is based on Beaulaurier et al. 2019, Assembly-free single-molecule nanopore sequencing
 recovers complete virus genomes from natural microbial communities. [https://www.biorxiv.org/content/biorxiv/early/2019/04/26/619684.full.pdf]
 */
-workflow detection_nanopore {
+workflow nanovirus {
     get:    nanopore_reads
             kaiju_db
 
@@ -198,7 +198,7 @@ workflow {
 
     // nanopore data
     if (params.nano) { 
-        detection_nanopore(nano_input_ch, kaiju_db)           
+        nanovirus(nano_input_ch, kaiju_db)           
     }
 
 }
