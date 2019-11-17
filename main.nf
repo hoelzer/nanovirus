@@ -2,7 +2,7 @@
 nextflow.preview.dsl=2
 
 /*
-* Nextflow -- Virus Analysis Pipeline
+* Nextflow -- Virus Analysis Pipeline for Nanopore data
 * Author: hoelzer.martin@gmail.com
 */
 
@@ -34,8 +34,8 @@ add csv instead. name,path   or name,pathR1,pathR2 in case of illumina
         if (params.help) { exit 0, helpMSG() }
         if (params.profile) {
             exit 1, "--profile is WRONG use -profile" }
-        if (params.nano == '' &&  params.illumina == '' &&  params.fasta == '' ) {
-            exit 1, "input missing, use [--nano] or [--illumina] or [--fasta]"}
+        if (params.nano == '' &&  params.fasta == '' ) {
+            exit 1, "input missing, use [--nano] or [--fasta]"}
 
 /************************** 
 * INPUT CHANNELS 
@@ -52,6 +52,19 @@ add csv instead. name,path   or name,pathR1,pathR2 in case of illumina
                 .map { file -> tuple(file.simpleName, file) }
                 .view() }
 
+    // direct fasta input for test & --list support
+        if (params.fasta && params.list) { fasta_input_ch = Channel
+                .fromPath( params.fasta, checkIfExists: true )
+                .splitCsv()
+                .map { row -> ["${row[0]}", file("${row[1]}")] }
+                .view() }
+        else if (params.fasta) { fasta_input_ch = Channel
+                .fromPath( params.fasta, checkIfExists: true)
+                .map { file -> tuple(file.simpleName, file) }
+                .view() }
+
+
+
 /************************** 
 * MODULES
 **************************/
@@ -59,7 +72,6 @@ add csv instead. name,path   or name,pathR1,pathR2 in case of illumina
 /* Comment section: */
 
 //db
-include './modules/virsorterGetDB' params(cloudProcess: params.cloudProcess, cloudDatabase: params.cloudDatabase)
 include './modules/kaijuGetDB' params(cloudProcess: params.cloudProcess, cloudDatabase: params.cloudDatabase)
 
 //detection
@@ -206,7 +218,7 @@ def helpMSG() {
     log.info """
     ____________________________________________________________________________________________
     
-    VIRify
+    nanovirus
     
     ${c_yellow}Usage example:${c_reset}
     nextflow run main.nf --nano '*/*.fastq' 
