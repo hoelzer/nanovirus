@@ -193,8 +193,12 @@ workflow nanovirus {
 /* Comment section: */
 
 workflow {
-    download_kaiju_db()
-    kaiju_db = download_kaiju_db.out
+    if (params.db_kaiju) {
+        kaiju_db = file(params.db_kaiju)
+    } else {
+        download_kaiju_db()
+        kaiju_db = download_kaiju_db.out
+    }
 
     // nanopore data
     if (params.nano) { 
@@ -236,7 +240,7 @@ def helpMSG() {
 
     ${c_yellow}Parameters:${c_reset}
     --gsize             estimated genome size [default: $params.gsize]
-    --virsorter         a virsorter database [default: $params.virsorter_db]
+    --kaiju             a kaiju database [default: $params.db_kaiju]
 
     ${c_dim}Nextflow options:
     -with-report rep.html    cpu / ram usage (may cause errors)
