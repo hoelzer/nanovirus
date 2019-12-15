@@ -167,7 +167,7 @@ workflow nanovirus {
         //flye.out[0].view()
 
         //canu
-        //canu(get_reads_per_bin.out[0].transpose())
+        canu(get_reads_per_bin.out[0].transpose())
         //canu.out.view()
 
         //Bandage?
@@ -242,12 +242,19 @@ def helpMSG() {
     --gsize             estimated genome size [default: $params.gsize]
     --kaiju             a kaiju database [default: $params.db_kaiju]
 
+    ${c_yellow}HPC or cloud computing:${c_reset}
+    For execution of the workflow in the cloud or on a HPC (such as provided with LSF) 
+    you might want to adjust the following parameters.
+    --databases         defines the path where databases are stored [default: $params.cloudDatabase]
+    --workdir           defines the path where nextflow writes tmp files [default: $params.workdir]
+    --cachedir          defines the path where images (singularity) are cached [default: $params.cachedir] 
+
     ${c_dim}Nextflow options:
     -with-report rep.html    cpu / ram usage (may cause errors)
     -with-dag chart.html     generates a flowchart for the process tree
     -with-timeline time.html timeline (may cause errors)
 
     Profile:
-    -profile                 standard, googlegenomics [default: standard] ${c_reset}
+    -profile                 standard, lsf, ebi, googlegenomics [default: standard] ${c_reset}
     """.stripIndent()
 }
