@@ -83,6 +83,7 @@ include './modules/hdbscan' params(output: params.output)
 include './modules/filter_bins' params(output: params.output)
 include './modules/get_reads_per_bin' params(output: params.output)
 include './modules/filter_kaiju' params(output: params.output)
+include './modules/filter_corrected_reads' params(output: params.output)
 
 //qc
 include './modules/nanoplot' params(output: params.output)
@@ -107,7 +108,8 @@ include './modules/krona' params(output: params.output)
 The Database Section is designed to "auto-get" pre prepared databases.
 It is written for local use and cloud use.*/
 
-
+// TODO: currently I am downloading a smaller refseq db for testing. 
+// the final version should use the large db like in the paper
 workflow download_kaiju_db {
     main:
     // local storage via storeDir
@@ -173,6 +175,7 @@ workflow nanovirus {
         //Bandage?
 
         //filter reads
+        filter_corrected_reads(canu.out)
 
         //FastANI
 
