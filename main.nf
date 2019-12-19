@@ -84,6 +84,8 @@ include './modules/filter_bins' params(output: params.output)
 include './modules/get_reads_per_bin' params(output: params.output)
 include './modules/filter_kaiju' params(output: params.output)
 include './modules/filter_corrected_reads' params(output: params.output)
+include './modules/fastani' params(output: params.output)
+include './modules/cluster_ani' params(output: params.output)
 
 //qc
 include './modules/nanoplot' params(output: params.output)
@@ -132,7 +134,7 @@ workflow download_kaiju_db {
 This sub workflow is based on Beaulaurier et al. 2019, Assembly-free single-molecule nanopore sequencing
 recovers complete virus genomes from natural microbial communities. [https://www.biorxiv.org/content/biorxiv/early/2019/04/26/619684.full.pdf]
 */
-workflow nanovirus {
+workflow classify {
     get:    nanopore_reads
             kaiju_db
 
@@ -164,12 +166,17 @@ workflow nanovirus {
         get_reads_per_bin_ch = hdbscan.out.join(filter_bins.out).join(filter_reads.out[1])
         get_reads_per_bin(get_reads_per_bin_ch)
 
-        //flye
-        //flye(get_reads_per_bin.out[0].transpose())
-        //flye.out[0].view()
+        bin(get_reads_per_bin.out[0].transpose())
+}
+
+
+workflow bin {
+    get: bins
+
+    main:
 
         //canu
-        canu(get_reads_per_bin.out[0].transpose())
+        canu(bins)
         //canu.out.view()
 
         //Bandage?
@@ -178,8 +185,18 @@ workflow nanovirus {
         filter_corrected_reads(canu.out)
 
         //FastANI
+        fastani(filter_corrected_reads.out)
 
         //cluster ANI
+        cluster_ani(fastani.out)
+
+        polish(cluster_ani.out)
+}
+
+workflow polish {
+    get: ani
+
+    main:
 
         //polishing
 
@@ -205,7 +222,7 @@ workflow {
 
     // nanopore data
     if (params.nano) { 
-        nanovirus(nano_input_ch, kaiju_db)           
+        classify(nano_input_ch, kaiju_db)           
     }
 
 }
