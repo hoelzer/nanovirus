@@ -86,6 +86,7 @@ include './modules/filter_kaiju' params(output: params.output)
 include './modules/filter_corrected_reads' params(output: params.output)
 include './modules/fastani' params(output: params.output)
 include './modules/cluster_ani' params(output: params.output)
+include './modules/prodigal' params(output: params.output)
 
 //qc
 include './modules/nanoplot' params(output: params.output)
@@ -94,9 +95,11 @@ include './modules/filtlong'
 //assembly
 include './modules/flye' params(output: params.output)
 include './modules/canu' params(output: params.output)
+
+//polishing
+include './modules/racon' params(output: params.output)
 include './modules/medaka' params(output: params.output, model: params.model, assemblydir: params.assemblydir)
 include './modules/minimap2'
-include './modules/racon'
 
 //visuals
 include './modules/krona' params(output: params.output)
@@ -199,12 +202,27 @@ workflow polish {
     main:
 
         //polishing
+        //TODO: perform racon 3 times like in the manuscript
+        medaka(racon(minimap2(ani)))
+
+        //porechop
+        //TODO: the manuscript uses porechop for adapter clipping which is abandoned, some alternative?
+
+        annotate(medaka.out)
+}
+
+workflow annotate {
+    get: viruses
+
+    main:
 
         //orf prediction
+        prodigal(viruses)
 
         //find DTR (direct terminal repeats)
 
 }
+
 
 /************************** 
 * WORKFLOW ENTRY POINT

@@ -1,4 +1,5 @@
 process minimap2 {
+  publishDir "${params.output}/${name}/", mode: 'copy', pattern: "${name}.paf"
   label 'minimap2'
       input:
   	    tuple val(name), file(read), file(assembly) 

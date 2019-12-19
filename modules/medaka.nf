@@ -12,3 +12,7 @@ process medaka {
       	"""
 }
 
+/*
+Check model
+
+*/
